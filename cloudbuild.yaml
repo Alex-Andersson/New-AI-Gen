@@ -1,71 +1,22 @@
-apiVersion: serving.knative.dev/v1
-kind: Service
-metadata:
-  name: hello
-  namespace: '130557734898'
-  selfLink: /apis/serving.knative.dev/v1/namespaces/130557734898/services/hello
-  uid: 7cc7dd51-ea78-4d70-99dc-0b90783b01d3
-  resourceVersion: AAYEC1w29bM
-  generation: 1
-  creationTimestamp: '2023-08-29T08:10:35.906640Z'
-  labels:
-    cloud.googleapis.com/location: europe-north1
-  annotations:
-    run.googleapis.com/client-name: cloud-console
-    serving.knative.dev/creator: alexander_199@hotmail.se
-    serving.knative.dev/lastModifier: alexander_199@hotmail.se
-    run.googleapis.com/operation-id: 7cd88fef-430d-4f0e-96ba-c5d6577ec134
-    run.googleapis.com/ingress: all
-    run.googleapis.com/ingress-status: all
-spec:
-  template:
-    metadata:
-      labels:
-        run.googleapis.com/startupProbeType: Default
-      annotations:
-        run.googleapis.com/client-name: cloud-console
-        autoscaling.knative.dev/maxScale: '100'
-    spec:
-      containerConcurrency: 80
-      timeoutSeconds: 300
-      serviceAccountName: 130557734898-compute@developer.gserviceaccount.com
-      containers:
-      - image: us-docker.pkg.dev/cloudrun/container/hello
-        ports:
-        - name: http1
-          containerPort: 8080
-        resources:
-          limits:
-            cpu: 1000m
-            memory: 512Mi
-        startupProbe:
-          timeoutSeconds: 240
-          periodSeconds: 240
-          failureThreshold: 1
-          tcpSocket:
-            port: 8080
-  traffic:
-  - percent: 100
-    latestRevision: true
-status:
-  observedGeneration: 1
-  conditions:
-  - type: Ready
-    status: 'True'
-    lastTransitionTime: '2023-08-29T08:11:38.521011Z'
-  - type: ConfigurationsReady
-    status: 'True'
-    lastTransitionTime: '2023-08-29T08:10:38.647964Z'
-  - type: RoutesReady
-    status: 'True'
-    lastTransitionTime: '2023-08-29T08:11:38.521011Z'
-  latestReadyRevisionName: hello-00001-pf7
-  latestCreatedRevisionName: hello-00001-pf7
-  traffic:
-  - revisionName: hello-00001-pf7
-    percent: 100
-    latestRevision: true
-  url: https://hello-udaoebl75a-lz.a.run.app
-  address:
-    url: https://hello-udaoebl75a-lz.a.run.app
 
+# Use the official lightweight Python image.
+# https://hub.docker.com/_/python
+FROM python:3.11-slim
+
+# Allow statements and log messages to immediately appear in the logs
+ENV PYTHONUNBUFFERED True
+
+# Copy local code to the container image.
+ENV APP_HOME /app
+WORKDIR $APP_HOME
+COPY . ./
+
+# Install production dependencies.
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Run the web service on container startup. Here we use the gunicorn
+# webserver, with one worker process and 8 threads.
+# For environments with multiple CPU cores, increase the number of workers
+# to be equal to the cores available.
+# Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
